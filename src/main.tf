@@ -1,5 +1,4 @@
-# Terraform configuration for Azure cloud infrastructure with PostgreSQL, Redis, Kafka, RabbitMQ on Docker
-
+# Terraform configuration for Azure cloud infrastructure with PostgreSQL, Redis, Kafka, RabbitMQ on Docker containers
 /* main.tf */
 provider "azurerm" {
   features {}
@@ -31,24 +30,13 @@ resource "azurerm_subnet" "subnet" {
   address_prefixes     = ["10.0.1.0/24"]
 }
 
-# Network Security Group
-resource "azurerm_network_security_group" "nsg" {
-  name                = "my_nsg"
-  resource_group_name = azurerm_resource_group.rg.name
+# Public IP with Static Allocation (required for Standard SKU)
+resource "azurerm_public_ip" "public_ip" {
+  name                = "my_public_ip"
   location            = azurerm_resource_group.rg.location
-
-  security_rule {
-    name                       = "AllowSSH"
-    priority                   = 1001
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "22"
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
-  }
-  # Add rules for Docker services as needed
+  resource_group_name = azurerm_resource_group.rg.name
+  allocation_method   = "Static"
+  sku                 = "Standard"
 }
 
 # Network Interface
@@ -65,17 +53,10 @@ resource "azurerm_network_interface" "nic" {
   }
 }
 
-# Public IP
-resource "azurerm_public_ip" "public_ip" {
-  name                = "my_public_ip"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-  allocation_method   = "Dynamic"
-}
-
 # Virtual Machine
 resource "azurerm_linux_virtual_machine" "vm" {
-  name                = "my_vm"
+  name                = "myvm"
+  computer_name       = "myvm"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
   size                = "Standard_D4s_v3"
@@ -95,7 +76,6 @@ resource "azurerm_linux_virtual_machine" "vm" {
     storage_account_type = "Standard_LRS"
   }
 
-
   source_image_reference {
     publisher = "Canonical"
     offer     = "UbuntuServer"
@@ -107,4 +87,3 @@ resource "azurerm_linux_virtual_machine" "vm" {
 output "public_ip" {
   value = azurerm_public_ip.public_ip.ip_address
 }
-  
